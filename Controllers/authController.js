@@ -11,6 +11,11 @@ import UserSubscription from "../Models/UserSubscription.js";
 import crypto from "crypto";
 import razorpay from "../config/razorpay.js";
 import Plan from "../Models/Plan.js";
+import nodemailer from 'nodemailer';
+
+import dotenv from "dotenv";
+dotenv.config();
+
 
 // SEND OTP
 
@@ -896,3 +901,151 @@ export const verifyPlanPayment = async (req, res) => {
   }
 };
 
+
+
+
+export const deleteUserAccount = async (req, res) => {
+  try {
+    const { userId } = req.params;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "userId is required in params",
+      });
+    }
+
+    // 1️⃣ Check if user exists
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    // 2️⃣ Delete user
+    await User.findByIdAndDelete(userId);
+
+    // 3️⃣ Return response
+    return res.status(200).json({
+      success: true,
+      message: `User account with ID ${userId} has been successfully deleted.`,
+    });
+
+  } catch (error) {
+    console.error("Delete user account error:", error);
+    return res.status(500).json({
+      success: false,
+      message: "Server error",
+      error: error.message,
+    });
+  }
+};
+
+
+
+// Setup Nodemailer transport
+const transporter = nodemailer.createTransport({
+  service: 'gmail',
+  auth: {
+    user: 'pms226803@gmail.com',
+    pass: 'nrasbifqxsxzurrm',
+  },
+  host: 'smtp.gmail.com',
+  port: 587,
+  secure: false,
+  requireTLS: true,
+  tls: {
+    rejectUnauthorized: false
+  },
+  connectionTimeout: 60000,
+  greetingTimeout: 30000,
+  socketTimeout: 60000
+});
+
+export const deleteAccount = async (req, res) => {
+  const { email, reason } = req.body;
+
+  // Validate email and reason
+  if (!email || !reason) {
+    return res.status(400).json({ message: 'Email and reason are required' });
+  }
+
+  try {
+    // Find the user by email
+    const user = await User.findOne({ email });
+
+    if (!user) {
+      return res.status(404).json({ message: 'User not found' });
+    }
+
+    // Generate a unique token for account deletion
+    const token = crypto.randomBytes(20).toString('hex');
+    const deleteLink = `${process.env.BASE_URL}/confirm-delete-account/${token}`;
+
+    // Set the deleteToken and deleteTokenExpiration
+    user.deleteToken = token;
+    user.deleteTokenExpiration = Date.now() + 3600000;  // Token expires in 1 hour
+
+    // Log the user object before saving
+    console.log('User before saving:', user);
+
+    // Save the token and expiration time to the database
+    await user.save();  // This should now save the user along with the deleteToken and deleteTokenExpiration
+
+    // Log after saving to confirm
+    console.log('User after saving:', user);
+
+    // Send the confirmation email
+    const mailOptions = {
+      from: 'pms226803@gmail.com',
+      to: email,
+      subject: 'Account Deletion Request Received',
+      text: `Hi ${user.name},\n\nWe have received your account deletion request. To confirm the deletion of your account, please click the link below:\n\n${deleteLink}\n\nReason: ${reason}\n\nIf you have any questions or need further assistance, please feel free to contact us. \n\nBest regards,\nYour Team`,
+    };
+
+    await transporter.sendMail(mailOptions);
+
+    return res.status(200).json({
+      message: 'Account deletion request has been processed.We are send mail shortly.Please check your email and confirm the link to delete.',
+      token: token // Send the token in the response
+    });
+  } catch (err) {
+    console.error('Error in deleteAccount:', err);
+    return res.status(500).json({ message: 'Something went wrong' });
+  }
+};
+
+// Route: GET /confirm-delete-account/:token
+export const confirmDeleteAccount = async (req, res) => {
+  const { token } = req.params; // URL se token lo
+
+
+  try {
+    // Ek hi step me find aur delete
+    const user = await User.findOneAndDelete({ deleteToken: token });
+
+    if (!user) {
+      return res.status(400).json({
+        message: "Invalid token. Account cannot be deleted.",
+      });
+    }
+
+    return res.status(200).json({
+      message: "Your account has been successfully deleted.",
+      deletedUser: {
+        _id: user._id,
+        name: user.name,
+        email: user.email,
+        mobile: user.mobile
+      } // optional: delete hone wale user details
+    });
+
+  } catch (err) {
+    console.error("Error in confirmDeleteAccount:", err);
+    return res.status(500).json({
+      message: "Server error. Account deletion failed.",
+    });
+  }
+};

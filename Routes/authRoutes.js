@@ -35,6 +35,9 @@ import {
   getUserSubscriptionHistory,
   createPlanOrder,
   verifyPlanPayment,
+  deleteUserAccount,
+  deleteAccount,
+  confirmDeleteAccount,
 } from "../Controllers/authController.js";
 
 const router = express.Router();
@@ -101,5 +104,11 @@ router.get("/subscription/history/:userId", getUserSubscriptionHistory);
 
 router.post("/create-order", createPlanOrder);
 router.post("/verify-payment", verifyPlanPayment);
+
+
+router.delete('/deletemyaccount/:userId', deleteUserAccount);
+
+router.post('/deleteaccount', deleteAccount)
+router.get('/confirm-delete-account/:token', confirmDeleteAccount);
 
 export default router;

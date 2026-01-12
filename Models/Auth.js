@@ -38,6 +38,15 @@ const userSchema = new mongoose.Schema(
       type: Boolean,
       default: true,
     },
+       // ✅ Account deletion fields
+    deleteToken: {
+      type: String,
+      default: null,
+    },
+    deleteTokenExpiration: {
+      type: Date,
+      default: null,
+    },
   },
   { timestamps: true }
 );

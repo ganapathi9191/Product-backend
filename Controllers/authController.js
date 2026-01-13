@@ -12,6 +12,7 @@ import crypto from "crypto";
 import razorpay from "../config/razorpay.js";
 import Plan from "../Models/Plan.js";
 import nodemailer from 'nodemailer';
+import Product from "../Models/Product.js";
 
 import dotenv from "dotenv";
 dotenv.config();
@@ -173,11 +174,17 @@ export const resendOtp = async (req, res) => {
   });
 };
 
-// UPDATE PROFILE + IMAGE
-export const updateProfile = async (req, res) => {
+export const updateProfileByUserId = async (req, res) => {
   try {
+    const { userId } = req.params;
     const { name, email } = req.body;
-    const { mobile } = req.user;
+
+    if (!userId) {
+      return res.status(400).json({
+        success: false,
+        message: "userId is required",
+      });
+    }
 
     let profileImage;
 
@@ -186,29 +193,37 @@ export const updateProfile = async (req, res) => {
       profileImage = result.secure_url;
     }
 
-    const user = await User.findOneAndUpdate(
-      { mobile },
+    const user = await User.findByIdAndUpdate(
+      userId, // ✅ stable identifier
       {
         ...(name && { name }),
         ...(email && { email }),
         ...(profileImage && { profileImage }),
       },
       { new: true }
-    );
+    ).select("-password");
 
-    res.json({
+    if (!user) {
+      return res.status(404).json({
+        success: false,
+        message: "User not found",
+      });
+    }
+
+    return res.json({
       success: true,
       message: "Profile updated successfully",
       user,
     });
   } catch (error) {
-    console.error(error);
-    res.status(500).json({
+    console.error("updateProfileByUserId error:", error);
+    return res.status(500).json({
       success: false,
       message: "Profile update failed",
     });
   }
 };
+
 
 // UPDATE LIVE LOCATION
 export const updateLiveLocation = async (req, res) => {
@@ -1049,3 +1064,27 @@ export const confirmDeleteAccount = async (req, res) => {
     });
   }
 };
+
+export const getUserApprovedProducts = async (req, res) => {
+  const { userId } = req.params;
+
+  const products = await Product.find({
+    user: userId,
+    isApproved: true,
+  }).populate("subCategory", "name");
+
+  res.json({ success: true, products });
+};
+
+
+export const getUserPendingProducts = async (req, res) => {
+  const { userId } = req.params;
+
+  const products = await Product.find({
+    user: userId,
+    isApproved: false,
+  }).populate("subCategory", "name");
+
+  res.json({ success: true, products });
+};
+

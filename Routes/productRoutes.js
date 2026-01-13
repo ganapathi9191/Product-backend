@@ -4,7 +4,7 @@ import upload from "../utils/upload.js";
 import {
   createProduct,
   getAllProducts,
-  
+
   approveProduct,
   getProductById,
   updateProduct,
@@ -13,6 +13,13 @@ import {
   toggleWishlist,
   getWishlist,
   getUserProducts,
+  searchProducts,
+  filterProducts,
+  getAdminApprovedProducts,
+  getAdminPendingProducts,
+  getUserNotifications,
+  markNotificationAsRead,
+  deleteNotification,
 } from "../Controllers/productController.js";
 
 const router = express.Router();
@@ -48,5 +55,17 @@ router.delete("/:id", deleteProduct);
 /* ================= WISHLIST ================= */
 router.post("/wishlist/toggle", toggleWishlist);
 router.get("/wishlist/:userId", getWishlist);
+
+
+// SEARCH & FILTER
+router.get("/products/search", searchProducts);
+router.get("/products/filter", filterProducts);
+
+router.get("/products/approved", getAdminApprovedProducts);
+router.get("/products/pending", getAdminPendingProducts);
+
+router.get("/notifications/:userId", getUserNotifications);
+router.put("/notifications/read/:notificationId", markNotificationAsRead);
+router.delete("/notifications/:notificationId", deleteNotification);
 
 export default router;

@@ -6,7 +6,7 @@ import {
   sendOtp,
   verifyOtp,
   resendOtp,
-  updateProfile,
+  updateProfileByUserId ,
   updateLiveLocation,
   getProfileById,
   getAllUsers,
@@ -38,6 +38,9 @@ import {
   deleteUserAccount,
   deleteAccount,
   confirmDeleteAccount,
+  getUserApprovedProducts,
+  getUserPendingProducts,
+ 
 } from "../Controllers/authController.js";
 
 const router = express.Router();
@@ -50,10 +53,9 @@ router.post("/resend-otp", resendOtp);
 /* ================= PROFILE ================= */
 /* ✅ ONLY HERE AUTH MIDDLEWARE IS USED */
 router.put(
-  "/profile",
-  authMiddleware,
+  "/update-profile/:userId",
   upload.single("profileImage"),
-  updateProfile
+  updateProfileByUserId
 );
 
 /* ❌ NO AUTH HERE */
@@ -110,5 +112,11 @@ router.delete('/deletemyaccount/:userId', deleteUserAccount);
 
 router.post('/deleteaccount', deleteAccount)
 router.get('/confirm-delete-account/:token', confirmDeleteAccount);
+
+router.get("/products/user/:userId/approved", getUserApprovedProducts);
+router.get("/products/user/:userId/pending", getUserPendingProducts);
+
+
+
 
 export default router;
